@@ -1,9 +1,11 @@
 package main
 
 import (
+	"bufio"
 	"context"
 	"fmt"
 	"os"
+	"path/filepath"
 
 	"github.com/AlecAivazis/survey/v2"
 	"github.com/PullRequestInc/go-gpt3"
@@ -75,8 +77,56 @@ func do() error {
 		if err := survey.AskOne(questionPath, &answerPath, survey.WithValidator(survey.Required)); err != nil {
 			return err
 		}
-		// TODO:
-		fmt.Printf("あなたが選んだファイル: %s\n", answerPath)
+		path, err := filepath.Abs(answerPath)
+		if err != nil {
+			return err
+		}
+		if !isExist(path) {
+			return fmt.Errorf("no exist file: %s", answerPath)
+		}
+
+		questionProcessingFile := &survey.Input{
+			Message: "このファイルをどうしたいですか？",
+		}
+		answerProcessingFile := ""
+		if err := survey.AskOne(questionProcessingFile, &answerProcessingFile, survey.WithValidator(survey.Required)); err != nil {
+			return err
+		}
+
+		f, err := os.Open(path)
+		if err != nil {
+			return err
+		}
+		defer f.Close()
+
+		// TODO: 一旦、jsonとかcsvとか考えずに普通のテキストファイルとして作る
+		sc := bufio.NewScanner(f)
+		in := "「"
+		for sc.Scan() {
+			in += sc.Text()
+		}
+		if err := sc.Err(); err != nil {
+			return err
+		}
+		in += "」"
+		in += answerProcessingFile
+
+		err = gptClient.CompletionStreamWithEngine(
+			context.Background(),
+			gpt3.TextDavinci003Engine,
+			gpt3.CompletionRequest{
+				Prompt: []string{
+					in,
+				},
+				MaxTokens:   gpt3.IntPtr(3000),
+				Temperature: gpt3.Float32Ptr(0),
+			}, func(resp *gpt3.CompletionResponse) {
+				fmt.Print(resp.Choices[0].Text)
+			})
+		if err != nil {
+			return err
+		}
+		fmt.Println()
 	case "音声":
 		// TODO:
 	default:
@@ -84,4 +134,11 @@ func do() error {
 	}
 
 	return nil
+}
+
+func isExist(path string) bool {
+	if _, err := os.Stat(path); !os.IsNotExist(err) {
+		return true
+	}
+	return false
 }
