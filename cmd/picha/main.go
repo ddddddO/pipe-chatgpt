@@ -20,22 +20,22 @@ func main() {
 func do() error {
 	apiKey := os.Getenv("CHATGPT_API_KEY")
 	if apiKey == "" {
-		questionAPIKey := &survey.Password{
-			Message: "ChatGPTのAPI keyを入力してください",
-		}
-		if err := survey.AskOne(questionAPIKey, &apiKey, survey.WithValidator(survey.Required)); err != nil {
+		if err := survey.AskOne(
+			&survey.Password{
+				Message: "ChatGPTのAPI keyを入力してください",
+			}, &apiKey, survey.WithValidator(survey.Required)); err != nil {
 			return err
 		}
 	}
 	gptClient := picha.NewGPTClient(apiKey)
 
-	questionType := &survey.Select{
-		Message: "あなたの質問の種類は何ですか？",
-		Options: []string{"テキストファイル", "音声", "テキスト"},
-		Default: "テキスト",
-	}
 	answerType := ""
-	if err := survey.AskOne(questionType, &answerType); err != nil {
+	if err := survey.AskOne(
+		&survey.Select{
+			Message: "あなたの質問の種類は何ですか？",
+			Options: []string{"テキストファイル", "音声", "テキスト"},
+			Default: "テキスト",
+		}, &answerType); err != nil {
 		return err
 	}
 
@@ -43,11 +43,11 @@ func do() error {
 	switch answerType {
 	case "テキスト":
 		for {
-			questionText := &survey.Input{
-				Message: "聞きたいことは？",
-			}
 			answerText := ""
-			if err := survey.AskOne(questionText, &answerText, survey.WithValidator(survey.Required)); err != nil {
+			if err := survey.AskOne(
+				&survey.Input{
+					Message: "聞きたいことは？",
+				}, &answerText, survey.WithValidator(survey.Required)); err != nil {
 				return err
 			}
 			if err := gptClient.RequestToDavinci(answerText); err != nil {
@@ -55,11 +55,11 @@ func do() error {
 			}
 		}
 	case "テキストファイル":
-		questionPath := &survey.Input{
-			Message: "そのファイルパスを入力してください",
-		}
 		answerPath := ""
-		if err := survey.AskOne(questionPath, &answerPath, survey.WithValidator(survey.Required)); err != nil {
+		if err := survey.AskOne(
+			&survey.Input{
+				Message: "そのファイルパスを入力してください",
+			}, &answerPath, survey.WithValidator(survey.Required)); err != nil {
 			return err
 		}
 		path, err := filepath.Abs(answerPath)
@@ -70,11 +70,11 @@ func do() error {
 			return fmt.Errorf("no exist file: %s", answerPath)
 		}
 
-		questionProcessingFile := &survey.Input{
-			Message: "このファイルをどうしたいですか？",
-		}
 		answerProcessingFile := ""
-		if err := survey.AskOne(questionProcessingFile, &answerProcessingFile, survey.WithValidator(survey.Required)); err != nil {
+		if err := survey.AskOne(
+			&survey.Input{
+				Message: "このファイルをどうしたいですか？",
+			}, &answerProcessingFile, survey.WithValidator(survey.Required)); err != nil {
 			return err
 		}
 
