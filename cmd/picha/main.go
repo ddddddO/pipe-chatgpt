@@ -2,13 +2,12 @@ package main
 
 import (
 	"bufio"
-	"context"
 	"fmt"
 	"os"
 	"path/filepath"
 
 	"github.com/AlecAivazis/survey/v2"
-	"github.com/PullRequestInc/go-gpt3"
+	picha "github.com/ddddddO/pipe-chatgpt"
 )
 
 func main() {
@@ -28,7 +27,7 @@ func do() error {
 			return err
 		}
 	}
-	gptClient := gpt3.NewClient(apiKey)
+	gptClient := picha.NewGPTClient(apiKey)
 
 	questionType := &survey.Select{
 		Message: "あなたの質問の種類は何ですか？",
@@ -51,23 +50,9 @@ func do() error {
 			if err := survey.AskOne(questionText, &answerText, survey.WithValidator(survey.Required)); err != nil {
 				return err
 			}
-
-			err := gptClient.CompletionStreamWithEngine(
-				context.Background(),
-				gpt3.TextDavinci003Engine,
-				gpt3.CompletionRequest{
-					Prompt: []string{
-						answerText,
-					},
-					MaxTokens:   gpt3.IntPtr(3000),
-					Temperature: gpt3.Float32Ptr(0),
-				}, func(resp *gpt3.CompletionResponse) {
-					fmt.Print(resp.Choices[0].Text)
-				})
-			if err != nil {
+			if err := gptClient.RequestToDavinci(answerText); err != nil {
 				return err
 			}
-			fmt.Println()
 		}
 	case "テキストファイル":
 		questionPath := &survey.Input{
@@ -111,22 +96,7 @@ func do() error {
 		in += "」"
 		in += answerProcessingFile
 
-		err = gptClient.CompletionStreamWithEngine(
-			context.Background(),
-			gpt3.TextDavinci003Engine,
-			gpt3.CompletionRequest{
-				Prompt: []string{
-					in,
-				},
-				MaxTokens:   gpt3.IntPtr(3000),
-				Temperature: gpt3.Float32Ptr(0),
-			}, func(resp *gpt3.CompletionResponse) {
-				fmt.Print(resp.Choices[0].Text)
-			})
-		if err != nil {
-			return err
-		}
-		fmt.Println()
+		return gptClient.RequestToDavinci(in)
 	case "音声":
 		// TODO:
 	default:
